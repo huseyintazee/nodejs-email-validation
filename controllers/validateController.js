@@ -1,17 +1,26 @@
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
+const dotenv = require("dotenv")
+dotenv.config()
+
 
 const transporter = nodemailer.createTransport({
-    service: "Gmail",
+    service: "gmail",
     auth: {
         user: process.env.SERVICE_MAIL,
-        pass: process.env.SERVICE_MAIL_PASSWORD,
+        pass: process.env.SERVICE_MAIL_PASSWORD
     }
 });
 const verificationEmail = async (req, res) => {
     try {
         const email = req.body.email;
         const token = crypto.randomBytes(32).toString('hex');
+
+        if (!email)
+            return res.status(500).send({
+                result: false,
+                message: 'Missing parameter.'
+            })
 
         const mailOptions = {
             from: "Email Verification",
@@ -20,17 +29,18 @@ const verificationEmail = async (req, res) => {
             text: `Click on this link to verify your email: http://test.com/verify?token=${token}`,
         };
 
-        transporter.sendMail(mailOptions, (error, info) => {
+        await transporter.sendMail(mailOptions, (error, info) => {
             if (error) {
-                console.log(error);
                 res.status(500).json({
                     message: 'Error sending verification email.',
-                    serviceMail: process.env.SERVICE_MAIL,
-                    password:process.env.SERVICE_MAIL_PASSWORD
+                    errorMessage: error
                 });
             } else {
                 console.log('Email sent: ' + info.response);
-                res.send('Verification email sent.');
+                res.status(200).send({
+                    result: true,
+                    message: 'Verification email sended.'
+                });
             }
         });
     } catch (e) {
